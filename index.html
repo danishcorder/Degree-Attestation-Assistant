@@ -1,0 +1,131 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HEC Degree Assistant</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 680px;
+      margin: 40px auto;
+      padding: 16px;
+      background: #f5f7fb;
+      color: #172033;
+    }
+    main {
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px #0001;
+    }
+    #status { color: #555; font-size: 14px; }
+    #chat {
+      min-height: 220px;
+      max-height: 420px;
+      overflow-y: auto;
+      margin: 20px 0;
+    }
+    .msg {
+      padding: 12px;
+      border-radius: 10px;
+      margin: 10px 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .user { background: #e5efff; }
+    .bot { background: #eef7ee; }
+    textarea {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 80px;
+      padding: 12px;
+    }
+    button {
+      padding: 11px 16px;
+      margin: 8px 6px 0 0;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>HEC Degree Assistant</h1>
+  <p>Independent prototype — not an official HEC service.</p>
+
+  <button id="test">Test Grok API Key</button>
+  <p id="status">API key has not been tested.</p>
+
+  <div id="chat"></div>
+
+  <form id="form">
+    <textarea id="message"
+      placeholder="Ask about degree attestation..."
+      required></textarea>
+    <button id="send" type="submit">Send message</button>
+  </form>
+</main>
+
+<script>
+  const status = document.getElementById("status");
+  const chat = document.getElementById("chat");
+  const testButton = document.getElementById("test");
+  const sendButton = document.getElementById("send");
+
+  function addMessage(role, text) {
+    const div = document.createElement("div");
+    div.className = "msg " + role;
+    div.textContent = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  testButton.onclick = async () => {
+    testButton.disabled = true;
+    status.textContent = "Testing connection to xAI...";
+    try {
+      const response = await fetch("/api");
+      const data = await response.json();
+      status.textContent = data.ok
+        ? `${data.message} Model available: ${data.model_available}`
+        : data.message || "API test failed.";
+    } catch {
+      status.textContent = "Could not reach the API endpoint.";
+    } finally {
+      testButton.disabled = false;
+    }
+  };
+
+  document.getElementById("form").onsubmit = async (event) => {
+    event.preventDefault();
+    const input = document.getElementById("message");
+    const message = input.value.trim();
+    if (!message) return;
+
+    addMessage("user", message);
+    input.value = "";
+    sendButton.disabled = true;
+    status.textContent = "Grok is responding...";
+
+    try {
+      const response = await fetch("/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || "Request failed.");
+
+      addMessage("bot", data.reply || "No response received.");
+      status.textContent = "Response received.";
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      sendButton.disabled = false;
+    }
+  };
+</script>
+</body>
+</html>
