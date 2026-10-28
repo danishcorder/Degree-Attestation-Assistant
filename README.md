@@ -9,8 +9,8 @@ HEC service and does not determine application status.
 1. Push this repository to GitHub and import it as a project in Vercel. Keep the
    project root set to the repository root.
 2. In **Project Settings → Environment Variables**, add:
-   - `GROQ_API_KEY` — your Groq API key (keep it server-side; never add it to
-     frontend code or commit it).
+   - `XAI_API_KEY` — your **Groq** API key (use this exact variable name;
+     keep it server-side and never add it to frontend code or commit it).
    - `GROQ_MODEL` — optional; defaults to `openai/gpt-oss-20b`.
 3. Apply the variables to the environments you plan to use and deploy (or
    redeploy) the project.
@@ -34,7 +34,9 @@ python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Set your real `GROQ_API_KEY` in the local `.env` file. Do not commit that file.
+Set your real Groq API key as `XAI_API_KEY` in the local `.env` file. The
+variable name is retained for compatibility with the Vercel setting; the key
+value itself must come from Groq, not xAI. Do not commit that file.
 Use Vercel's local development server to exercise both the static page and API:
 
 ```powershell

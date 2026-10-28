@@ -28,9 +28,9 @@ HTTP_STATUSES = {
 
 
 def api_request(path, payload=None):
-    key = os.environ.get("GROQ_API_KEY")
+    key = os.environ.get("XAI_API_KEY")
     if not key:
-        raise RuntimeError("GROQ_API_KEY is not configured.")
+        raise RuntimeError("XAI_API_KEY is not configured.")
 
     data = json.dumps(payload).encode("utf-8") if payload is not None else None
     request = Request(
@@ -81,7 +81,7 @@ def get_status(start_response):
     except RuntimeError:
         return json_response(start_response, 503, {
             "ok": False,
-            "message": "GROQ_API_KEY is not configured in the server environment.",
+            "message": "XAI_API_KEY is not configured in the server environment.",
         })
     except HTTPError as error:
         return json_response(start_response, 502, {
@@ -166,7 +166,7 @@ def post_message(environ, start_response):
         return json_response(start_response, 200, {"reply": reply.strip()})
     except RuntimeError:
         return json_response(start_response, 503, {
-            "error": "GROQ_API_KEY is not configured in the server environment.",
+            "error": "XAI_API_KEY is not configured in the server environment.",
         })
     except HTTPError as error:
         if error.code == 429:
@@ -175,7 +175,7 @@ def post_message(environ, start_response):
             })
         if error.code in (401, 403):
             return json_response(start_response, 502, {
-                "error": "Groq rejected the API key. Check GROQ_API_KEY in Vercel.",
+                "error": "Groq rejected the API key. Check XAI_API_KEY in Vercel and confirm it contains a Groq API key.",
             })
         if error.code == 404:
             return json_response(start_response, 502, {
