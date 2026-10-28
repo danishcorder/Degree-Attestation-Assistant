@@ -1,31 +1,40 @@
-
 import json
 import os
-from http.server import BaseHTTPRequestHandler
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-# Loads .env locally if python-dotenv is installed.
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass
 
-XAI_URL = "https://api.x.ai/v1"
-MODEL = "grok-4.7"
+
+GROQ_URL = "https://api.groq.com/openai/v1"
+DEFAULT_MODEL = "openai/gpt-oss-20b"
+MAX_BODY_SIZE = 20_000
+MAX_MESSAGE_LENGTH = 4_000
+HTTP_STATUSES = {
+    200: "200 OK",
+    400: "400 Bad Request",
+    405: "405 Method Not Allowed",
+    413: "413 Request Entity Too Large",
+    415: "415 Unsupported Media Type",
+    429: "429 Too Many Requests",
+    502: "502 Bad Gateway",
+    503: "503 Service Unavailable",
+}
 
 
 def api_request(path, payload=None):
-    key = os.environ.get("XAI_API_KEY")
-
+    key = os.environ.get("GROQ_API_KEY")
     if not key:
-        raise RuntimeError("XAI_API_KEY is not configured.")
+        raise RuntimeError("GROQ_API_KEY is not configured.")
 
-    data = json.dumps(payload).encode() if payload is not None else None
-
-    req = Request(
-        XAI_URL + path,
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    request = Request(
+        GROQ_URL + path,
         data=data,
         headers={
             "Authorization": f"Bearer {key}",
@@ -34,93 +43,166 @@ def api_request(path, payload=None):
         method="POST" if data is not None else "GET",
     )
 
-    with urlopen(req, timeout=25) as response:
-        return json.loads(response.read().decode())
+    with urlopen(request, timeout=25) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 
-class handler(BaseHTTPRequestHandler):
+def json_response(start_response, status, data, extra_headers=None):
+    body = json.dumps(data).encode("utf-8")
+    headers = [
+        ("Content-Type", "application/json; charset=utf-8"),
+        ("Content-Length", str(len(body))),
+        ("Cache-Control", "no-store"),
+        ("X-Content-Type-Options", "nosniff"),
+    ]
+    if extra_headers:
+        headers.extend(extra_headers)
+    start_response(HTTP_STATUSES[status], headers)
+    return [body]
 
-    def send_json(self, status, data):
-        body = json.dumps(data).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(body)
 
-    def do_GET(self):
-        # A real test: call xAI with your key.
-        try:
-            result = api_request("/models")
-            models = [m["id"] for m in result.get("data", [])]
-            self.send_json(200, {
-                "ok": True,
-                "api_key": "valid",
-                "model_available": MODEL in models,
-                "model": MODEL,
-                "message": (
-                    "API key works."
-                    if MODEL in models
-                    else "Key works, but check model availability."
-                ),
+def get_status(start_response):
+    model = os.environ.get("GROQ_MODEL", DEFAULT_MODEL)
+    try:
+        result = api_request("/models")
+        if not isinstance(result, dict) or not isinstance(result.get("data"), list):
+            raise ValueError("Invalid models response.")
+        models = [item.get("id") for item in result["data"] if isinstance(item, dict)]
+        available = model in models
+        return json_response(start_response, 200 if available else 503, {
+            "ok": available,
+            "model": model,
+            "message": (
+                "Groq connection is ready."
+                if available
+                else "The Groq key works, but the configured model is unavailable."
+            ),
+        })
+    except RuntimeError:
+        return json_response(start_response, 503, {
+            "ok": False,
+            "message": "GROQ_API_KEY is not configured in the server environment.",
+        })
+    except HTTPError as error:
+        return json_response(start_response, 502, {
+            "ok": False,
+            "message": f"Groq rejected the model check (HTTP {error.code}). Verify the key and account.",
+        })
+    except (URLError, TimeoutError):
+        return json_response(start_response, 502, {
+            "ok": False,
+            "message": "Could not reach Groq. Please try again.",
+        })
+    except (ValueError, KeyError, TypeError):
+        return json_response(start_response, 502, {
+            "ok": False,
+            "message": "Groq returned an unexpected response.",
+        })
+
+
+def post_message(environ, start_response):
+    content_type = environ.get("CONTENT_TYPE", "").split(";", 1)[0].strip()
+    if content_type != "application/json":
+        return json_response(start_response, 415, {
+            "error": "Send the message as JSON.",
+        })
+
+    try:
+        length = int(environ.get("CONTENT_LENGTH") or "0")
+    except ValueError:
+        return json_response(start_response, 400, {"error": "Invalid request size."})
+
+    if length <= 0:
+        return json_response(start_response, 400, {"error": "Invalid request size."})
+    if length > MAX_BODY_SIZE:
+        return json_response(start_response, 413, {"error": "Request is too large."})
+
+    try:
+        body = json.loads(environ["wsgi.input"].read(length))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return json_response(start_response, 400, {
+            "error": "Request body must be valid JSON.",
+        })
+
+    if not isinstance(body, dict):
+        return json_response(start_response, 400, {
+            "error": "Request body must be a JSON object.",
+        })
+
+    message = body.get("message")
+    if not isinstance(message, str) or not message.strip():
+        return json_response(start_response, 400, {"error": "Enter a message."})
+
+    message = message.strip()
+    if len(message) > MAX_MESSAGE_LENGTH:
+        return json_response(start_response, 400, {"error": "Message is too long."})
+
+    model = os.environ.get("GROQ_MODEL", DEFAULT_MODEL)
+    try:
+        result = api_request("/chat/completions", {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an independent HEC Degree Attestation "
+                        "information assistant in Pakistan. Explain things "
+                        "simply. Never claim to be an official HEC agent. "
+                        "Do not invent official rules, fees, timelines, or "
+                        "application status. Direct users to official HEC "
+                        "sources when uncertain. Never request passwords, "
+                        "one-time codes, or other sensitive credentials."
+                    ),
+                },
+                {"role": "user", "content": message},
+            ],
+            "temperature": 0.4,
+            "max_tokens": 700,
+        })
+
+        reply = result["choices"][0]["message"]["content"]
+        if not isinstance(reply, str) or not reply.strip():
+            raise ValueError("Groq returned an empty reply.")
+        return json_response(start_response, 200, {"reply": reply.strip()})
+    except RuntimeError:
+        return json_response(start_response, 503, {
+            "error": "GROQ_API_KEY is not configured in the server environment.",
+        })
+    except HTTPError as error:
+        if error.code == 429:
+            return json_response(start_response, 429, {
+                "error": "Groq's free-tier limit was reached. Please try again later.",
             })
-        except HTTPError as e:
-            self.send_json(502, {
-                "ok": False,
-                "message": f"xAI returned HTTP {e.code}. Check your key and account."
+        if error.code in (401, 403):
+            return json_response(start_response, 502, {
+                "error": "Groq rejected the API key. Check GROQ_API_KEY in Vercel.",
             })
-        except Exception:
-            self.send_json(500, {
-                "ok": False,
-                "message": "API test failed. Check server configuration and logs."
+        if error.code == 404:
+            return json_response(start_response, 502, {
+                "error": "The configured Groq model is unavailable. Check GROQ_MODEL.",
             })
+        return json_response(start_response, 502, {
+            "error": f"Groq request failed (HTTP {error.code}).",
+        })
+    except (URLError, TimeoutError):
+        return json_response(start_response, 502, {
+            "error": "Could not reach Groq. Please try again.",
+        })
+    except (ValueError, KeyError, IndexError, TypeError):
+        return json_response(start_response, 502, {
+            "error": "Groq returned an unexpected response.",
+        })
 
-    def do_POST(self):
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 10000:
-                return self.send_json(400, {"error": "Invalid request size."})
 
-            body = json.loads(self.rfile.read(length))
-            message = str(body.get("message", "")).strip()
-
-            if not message:
-                return self.send_json(400, {"error": "Enter a message."})
-
-            if len(message) > 4000:
-                return self.send_json(400, {"error": "Message is too long."})
-
-            result = api_request("/chat/completions", {
-                "model": MODEL,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are an independent HEC Degree Attestation "
-                            "information assistant in Pakistan. Explain things "
-                            "simply. Never claim to be an official HEC agent. "
-                            "Do not invent official rules, fees or application "
-                            "status. Direct users to official HEC sources when "
-                            "uncertain. Never request passwords or OTPs."
-                        )
-                    },
-                    {"role": "user", "content": message},
-                ],
-            })
-
-            reply = result["choices"][0]["message"]["content"]
-            self.send_json(200, {"reply": reply})
-
-        except HTTPError as e:
-            # Keep API credentials and provider error details private.
-            self.send_json(502, {
-                "error": f"xAI request failed (HTTP {e.code})."
-            })
-        except (URLError, TimeoutError):
-            self.send_json(502, {"error": "Could not reach xAI. Try again."})
-        except Exception:
-            self.send_json(500, {"error": "Server error. Check deployment logs."})
-
-    def log_message(self, format, *args):
-        # Avoid logging request details unnecessarily.
-        pass
+def application(environ, start_response):
+    method = environ.get("REQUEST_METHOD", "GET").upper()
+    if method == "GET":
+        return get_status(start_response)
+    if method == "POST":
+        return post_message(environ, start_response)
+    return json_response(
+        start_response,
+        405,
+        {"error": "Method not allowed."},
+        [("Allow", "GET, POST")],
+    )

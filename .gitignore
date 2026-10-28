@@ -6,6 +6,14 @@ bin-release/
 
 # Other files and folders
 .settings/
+.env
+.env.*
+!.env.example
+.vercel/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
 
 # Executables
 *.swf

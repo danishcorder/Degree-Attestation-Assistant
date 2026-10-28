@@ -1,131 +1,560 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HEC Degree Assistant</title>
+  <meta name="theme-color" content="#f5f7f4">
+  <meta name="description" content="An independent AI assistant to help you understand HEC degree attestation in Pakistan.">
+  <title>Degree Desk — HEC Attestation Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root {
+      color-scheme: light;
+      --ink: #17241e;
+      --muted: #68766f;
+      --green: #176b4a;
+      --green-dark: #10563b;
+      --green-soft: #eaf3ed;
+      --paper: #f5f7f4;
+      --line: #e7ece7;
+      --white: #fff;
+      --shadow: 0 24px 70px rgba(27, 49, 37, .09);
+      font-family: "DM Sans", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
-      font-family: Arial, sans-serif;
-      max-width: 680px;
-      margin: 40px auto;
-      padding: 16px;
-      background: #f5f7fb;
-      color: #172033;
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 12% 0%, rgba(205, 225, 210, .55), transparent 34rem),
+        var(--paper);
     }
-    main {
-      background: white;
-      padding: 24px;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px #0001;
+
+    button, textarea { font: inherit; }
+    button:focus-visible, textarea:focus-visible, .suggestion:focus-visible {
+      outline: 3px solid rgba(23, 107, 74, .28);
+      outline-offset: 3px;
     }
-    #status { color: #555; font-size: 14px; }
-    #chat {
-      min-height: 220px;
-      max-height: 420px;
+
+    .page { width: min(1120px, calc(100% - 48px)); margin: 0 auto; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 84px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+
+    .brand-mark {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border-radius: 13px;
+      color: white;
+      background: var(--green);
+      box-shadow: 0 7px 16px rgba(23, 107, 74, .18);
+    }
+
+    .brand-mark svg { width: 23px; height: 23px; }
+    .brand-name { font-family: Manrope, sans-serif; font-size: 15px; font-weight: 800; letter-spacing: -.4px; }
+    .brand-caption { margin-top: 2px; color: var(--muted); font-size: 11px; }
+
+    .top-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #53625a;
+      font-size: 12px;
+    }
+
+    .top-note svg { width: 15px; height: 15px; color: var(--green); }
+
+    .hero {
+      max-width: 710px;
+      margin: 54px auto 30px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border: 1px solid #dfe9e1;
+      border-radius: 999px;
+      color: var(--green-dark);
+      background: rgba(255, 255, 255, .7);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow-dot { width: 7px; height: 7px; border-radius: 50%; background: #49a477; }
+
+    h1 {
+      margin: 17px 0 12px;
+      font-family: Manrope, sans-serif;
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -2.3px;
+      line-height: 1.12;
+    }
+
+    h1 span { color: var(--green); }
+    .hero-copy { max-width: 560px; margin: 0 auto; color: var(--muted); font-size: 15px; line-height: 1.7; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 250px;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 42px;
+    }
+
+    .chat-card, .side-card {
+      border: 1px solid rgba(222, 230, 223, .9);
+      border-radius: 19px;
+      background: var(--white);
+      box-shadow: var(--shadow);
+    }
+
+    .chat-card { overflow: hidden; }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 69px;
+      padding: 0 21px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .assistant-id { display: flex; align-items: center; gap: 11px; }
+
+    .assistant-avatar {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border-radius: 11px;
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .assistant-avatar svg { width: 19px; height: 19px; }
+    .assistant-name { font-size: 13px; font-weight: 700; }
+    .assistant-caption { margin-top: 2px; color: var(--muted); font-size: 11px; }
+
+    .connection {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .connection-dot { width: 7px; height: 7px; border-radius: 50%; background: #a7b2aa; }
+    .connection[data-state="ready"] .connection-dot { background: #42a273; }
+    .connection[data-state="error"] .connection-dot { background: #c65a51; }
+
+    .chat {
+      display: flex;
+      min-height: 310px;
+      max-height: 430px;
+      flex-direction: column;
+      gap: 16px;
       overflow-y: auto;
-      margin: 20px 0;
+      padding: 23px 22px;
+      scroll-behavior: smooth;
     }
-    .msg {
-      padding: 12px;
-      border-radius: 10px;
-      margin: 10px 0;
-      white-space: pre-wrap;
+
+    .welcome { display: flex; align-items: flex-start; gap: 11px; }
+    .welcome-bubble {
+      max-width: 510px;
+      padding: 14px 16px;
+      border: 1px solid #edf0ec;
+      border-radius: 4px 15px 15px;
+      background: #f8faf8;
+      color: #34443b;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .welcome-bubble strong { color: var(--ink); }
+    .message { display: flex; width: 100%; }
+    .message.user { justify-content: flex-end; }
+    .message-bubble {
+      max-width: min(82%, 540px);
+      padding: 12px 15px;
+      border-radius: 15px;
+      font-size: 13px;
+      line-height: 1.7;
       overflow-wrap: anywhere;
+      white-space: pre-wrap;
     }
-    .user { background: #e5efff; }
-    .bot { background: #eef7ee; }
+
+    .message.bot .message-bubble {
+      border: 1px solid #edf0ec;
+      border-top-left-radius: 4px;
+      background: #f8faf8;
+      color: #34443b;
+    }
+
+    .message.user .message-bubble {
+      border-top-right-radius: 4px;
+      color: #fff;
+      background: var(--green);
+    }
+
+    .message-bubble.pending { color: var(--muted); font-style: italic; }
+
+    .composer-wrap { padding: 0 18px 17px; }
+
+    .composer {
+      padding: 12px 13px 10px;
+      border: 1px solid #dfe6df;
+      border-radius: 14px;
+      background: #fff;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .composer:focus-within { border-color: #9dc4a9; box-shadow: 0 0 0 3px rgba(23, 107, 74, .08); }
+
     textarea {
-      box-sizing: border-box;
+      display: block;
       width: 100%;
-      min-height: 80px;
-      padding: 12px;
+      min-height: 62px;
+      max-height: 150px;
+      resize: vertical;
+      border: 0;
+      outline: 0;
+      color: var(--ink);
+      background: transparent;
+      font-size: 13px;
+      line-height: 1.6;
     }
-    button {
-      padding: 11px 16px;
-      margin: 8px 6px 0 0;
+
+    textarea::placeholder { color: #98a39c; }
+
+    .composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .input-hint { color: #89958d; font-size: 10px; }
+
+    .send-button {
+      display: inline-flex;
+      min-height: 38px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 9px;
+      color: #fff;
+      background: var(--green);
       cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      transition: background .2s, transform .2s;
+    }
+
+    .send-button:hover:not(:disabled) { transform: translateY(-1px); background: var(--green-dark); }
+    .send-button:disabled { cursor: wait; opacity: .65; }
+    .send-button svg { width: 15px; height: 15px; }
+
+    .privacy-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 11px;
+      color: #89958d;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .privacy-note svg { width: 12px; height: 12px; }
+
+    .side-card { padding: 20px 17px; box-shadow: 0 12px 35px rgba(27, 49, 37, .05); }
+    .side-card + .side-card { margin-top: 13px; }
+    .side-title { margin: 0 0 13px; font-family: Manrope, sans-serif; font-size: 13px; font-weight: 800; }
+    .suggestions { display: grid; gap: 8px; }
+
+    .suggestion {
+      width: 100%;
+      padding: 10px 11px;
+      border: 1px solid #e8ede8;
+      border-radius: 10px;
+      color: #435248;
+      background: #fff;
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1.5;
+      text-align: left;
+      transition: border-color .2s, background .2s;
+    }
+
+    .suggestion:hover { border-color: #b9d4c0; background: #f7faf7; }
+
+    .info-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+    .info-list li { display: flex; align-items: flex-start; gap: 9px; color: #69766e; font-size: 11px; line-height: 1.55; }
+    .info-list svg { width: 15px; height: 15px; flex: 0 0 auto; color: var(--green); }
+    .info-list strong { color: #334139; font-weight: 700; }
+
+    .disclaimer {
+      margin: 14px 0 0;
+      padding-top: 13px;
+      border-top: 1px solid var(--line);
+      color: #89958d;
+      font-size: 10px;
+      line-height: 1.6;
+    }
+
+    .status-message {
+      min-height: 17px;
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .status-message[data-state="error"] { color: #a33e36; }
+    .status-message[data-state="success"] { color: var(--green); }
+
+    footer { padding: 0 0 28px; color: #87938b; font-size: 10px; text-align: center; }
+    footer a { color: var(--green); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 760px) {
+      .page { width: min(100% - 32px, 620px); }
+      .hero { margin-top: 38px; }
+      .workspace { grid-template-columns: 1fr; }
+      .side-column { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .side-card + .side-card { margin-top: 0; }
+    }
+
+    @media (max-width: 520px) {
+      .page { width: calc(100% - 24px); }
+      .topbar { min-height: 70px; }
+      .top-note { max-width: 125px; font-size: 10px; }
+      .hero { margin: 32px auto 23px; }
+      h1 { letter-spacing: -1.5px; }
+      .hero-copy { font-size: 13px; }
+      .chat-header { min-height: 62px; padding: 0 14px; }
+      .chat { min-height: 290px; padding: 18px 14px; }
+      .composer-wrap { padding: 0 12px 13px; }
+      .side-column { grid-template-columns: 1fr; }
+      .side-card { padding: 17px; }
+      .message-bubble { max-width: 90%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
     }
   </style>
 </head>
 <body>
-<main>
-  <h1>HEC Degree Assistant</h1>
-  <p>Independent prototype — not an official HEC service.</p>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Degree Desk home" style="color:inherit;text-decoration:none">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 8.5 12 4l8 4.5-8 4.5L4 8.5Z"/><path d="M7 10.5v5c2.8 2.2 7.2 2.2 10 0v-5M20 9v6"/>
+          </svg>
+        </span>
+        <span><span class="brand-name">Degree Desk</span><span class="brand-caption" style="display:block">HEC Attestation Assistant</span></span>
+      </a>
+      <div class="top-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.4 3.2 7.8 7.5 9.5 4.3-1.7 7.5-5.1 7.5-9.5V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg>
+        Your API key stays private
+      </div>
+    </header>
 
-  <button id="test">Test Grok API Key</button>
-  <p id="status">API key has not been tested.</p>
+    <section class="hero" aria-labelledby="page-title">
+      <span class="eyebrow"><span class="eyebrow-dot"></span> A clearer path to attestation</span>
+      <h1 id="page-title">Your HEC questions,<br><span>answered simply.</span></h1>
+      <p class="hero-copy">Get a helpful starting point for degree attestation in Pakistan. Ask a question and explore the process with an independent AI assistant.</p>
+    </section>
 
-  <div id="chat"></div>
+    <main class="workspace">
+      <section class="chat-card" aria-label="Chat with the degree attestation assistant">
+        <header class="chat-header">
+          <div class="assistant-id">
+            <span class="assistant-avatar" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2M5.6 5.6 7 7M3 12h2m14 0h2m-3.6-6.4L17 7M7 17l-1.4 1.4M17 17l1.4 1.4M12 19v2"/><circle cx="12" cy="12" r="5"/></svg>
+            </span>
+            <span><span class="assistant-name" style="display:block">Attestation Assistant</span><span class="assistant-caption" style="display:block">Here to help you find your next step</span></span>
+          </div>
+          <div class="connection" id="connection" data-state="idle" aria-label="Connection not checked">
+            <span class="connection-dot" aria-hidden="true"></span><span id="connection-label">Ready to connect</span>
+          </div>
+        </header>
 
-  <form id="form">
-    <textarea id="message"
-      placeholder="Ask about degree attestation..."
-      required></textarea>
-    <button id="send" type="submit">Send message</button>
-  </form>
-</main>
+        <div class="chat" id="chat" role="log" aria-live="polite" aria-relevant="additions text">
+          <div class="welcome">
+            <span class="assistant-avatar" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2M5.6 5.6 7 7M3 12h2m14 0h2m-3.6-6.4L17 7M7 17l-1.4 1.4M17 17l1.4 1.4M12 19v2"/><circle cx="12" cy="12" r="5"/></svg>
+            </span>
+            <div class="welcome-bubble"><strong>Assalam-o-alaikum!</strong> I can help explain common degree attestation steps and terminology. What would you like to know?</div>
+          </div>
+        </div>
 
-<script>
-  const status = document.getElementById("status");
-  const chat = document.getElementById("chat");
-  const testButton = document.getElementById("test");
-  const sendButton = document.getElementById("send");
+        <div class="composer-wrap">
+          <p class="status-message" id="status" role="status" aria-live="polite">Ask a question to get started.</p>
+          <form id="form">
+            <div class="composer">
+              <label for="message" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Your question</label>
+              <textarea id="message" name="message" placeholder="Ask about HEC degree attestation..." maxlength="4000" required></textarea>
+              <div class="composer-actions">
+                <span class="input-hint">Shift + Enter for a new line</span>
+                <button class="send-button" id="send" type="submit">
+                  Send question
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                </button>
+              </div>
+            </div>
+          </form>
+          <div class="privacy-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            Messages are sent to Groq for replies. Never share passwords, OTPs, or sensitive personal information.
+          </div>
+        </div>
+      </section>
 
-  function addMessage(role, text) {
-    const div = document.createElement("div");
-    div.className = "msg " + role;
-    div.textContent = text;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-  }
+      <aside class="side-column" aria-label="Helpful information">
+        <section class="side-card">
+          <h2 class="side-title">Try asking</h2>
+          <div class="suggestions">
+            <button class="suggestion" type="button">What documents are commonly needed for attestation?</button>
+            <button class="suggestion" type="button">Can you explain the HEC attestation process?</button>
+            <button class="suggestion" type="button">How can I check official HEC guidance?</button>
+          </div>
+        </section>
 
-  testButton.onclick = async () => {
-    testButton.disabled = true;
-    status.textContent = "Testing connection to xAI...";
-    try {
-      const response = await fetch("/api");
-      const data = await response.json();
-      status.textContent = data.ok
-        ? `${data.message} Model available: ${data.model_available}`
-        : data.message || "API test failed.";
-    } catch {
-      status.textContent = "Could not reach the API endpoint.";
-    } finally {
-      testButton.disabled = false;
-    }
-  };
+        <section class="side-card">
+          <h2 class="side-title">A helpful note</h2>
+          <ul class="info-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span><strong>Independent guidance.</strong> This is not an official HEC service.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span><strong>Verify important details.</strong> Rules and fees can change.</span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span><strong>Use official sources</strong> for current requirements and applications.</span></li>
+          </ul>
+          <p class="disclaimer">AI responses can be inaccurate or outdated. Confirm all requirements with the Higher Education Commission of Pakistan before acting.</p>
+        </section>
+      </aside>
+    </main>
 
-  document.getElementById("form").onsubmit = async (event) => {
-    event.preventDefault();
+    <footer>Independent information assistant · <a href="https://www.hec.gov.pk/" target="_blank" rel="noopener noreferrer">Visit the official HEC website</a></footer>
+  </div>
+
+  <script>
+    const form = document.getElementById("form");
     const input = document.getElementById("message");
-    const message = input.value.trim();
-    if (!message) return;
+    const chat = document.getElementById("chat");
+    const status = document.getElementById("status");
+    const sendButton = document.getElementById("send");
+    const connection = document.getElementById("connection");
+    const connectionLabel = document.getElementById("connection-label");
 
-    addMessage("user", message);
-    input.value = "";
-    sendButton.disabled = true;
-    status.textContent = "Grok is responding...";
-
-    try {
-      const response = await fetch("/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
-      });
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.error || "Request failed.");
-
-      addMessage("bot", data.reply || "No response received.");
-      status.textContent = "Response received.";
-    } catch (error) {
-      status.textContent = error.message;
-    } finally {
-      sendButton.disabled = false;
+    function setStatus(message, state = "") {
+      status.textContent = message;
+      status.dataset.state = state;
     }
-  };
-</script>
+
+    function addMessage(role, text, pending = false) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `message ${role}`;
+      const bubble = document.createElement("div");
+      bubble.className = `message-bubble${pending ? " pending" : ""}`;
+      bubble.textContent = text;
+      wrapper.appendChild(bubble);
+      chat.appendChild(wrapper);
+      chat.scrollTop = chat.scrollHeight;
+      return wrapper;
+    }
+
+    document.querySelectorAll(".suggestion").forEach((button) => {
+      button.addEventListener("click", () => {
+        input.value = button.textContent.trim();
+        input.focus();
+      });
+    });
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    async function readJson(response) {
+      try {
+        return await response.json();
+      } catch {
+        throw new Error("The server returned an unexpected response. Please try again.");
+      }
+    }
+
+    async function checkConnection() {
+      connection.dataset.state = "idle";
+      connectionLabel.textContent = "Checking connection...";
+      try {
+        const response = await fetch("/api");
+        const data = await readJson(response);
+        if (!response.ok || !data.ok) {
+          throw new Error(data.message || "Could not connect to Groq.");
+        }
+        connection.dataset.state = "ready";
+        connectionLabel.textContent = "Assistant online";
+      } catch (error) {
+        connection.dataset.state = "error";
+        connectionLabel.textContent = "Connection unavailable";
+        if (error instanceof Error) setStatus(error.message, "error");
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = input.value.trim();
+      if (!message || sendButton.disabled) return;
+
+      addMessage("user", message);
+      input.value = "";
+      sendButton.disabled = true;
+      setStatus("The assistant is preparing a response...");
+      const pending = addMessage("bot", "Thinking...", true);
+
+      try {
+        const response = await fetch("/api", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
+        });
+        const data = await readJson(response);
+        if (!response.ok) throw new Error(data.error || "The request failed. Please try again.");
+        pending.remove();
+        addMessage("bot", data.reply || "No response was received. Please try again.");
+        setStatus("Response received.", "success");
+      } catch (error) {
+        pending.remove();
+        setStatus(error instanceof Error ? error.message : "Something went wrong. Please try again.", "error");
+      } finally {
+        sendButton.disabled = false;
+        input.focus();
+      }
+    });
+
+    checkConnection();
+  </script>
 </body>
 </html>
