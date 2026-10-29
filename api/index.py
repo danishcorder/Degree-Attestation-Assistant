@@ -13,10 +13,13 @@ except ImportError:
 
 GROQ_URL = "https://api.groq.com/openai/v1"
 DEFAULT_MODEL = "openai/gpt-oss-20b"
-FREE_MODELS = {
+FREE_CHAT_MODELS = {
     "openai/gpt-oss-20b": "GPT OSS 20B",
     "openai/gpt-oss-120b": "GPT OSS 120B",
     "qwen/qwen3.8-27b": "Qwen 3.8 27B",
+    "openai/gpt-oss-safeguard-20b": "GPT OSS Safeguard 20B (safety classifier)",
+    "meta-llama/llama-prompt-guard-2-22m": "Llama Prompt Guard 2 22M (safety classifier)",
+    "meta-llama/llama-prompt-guard-2-86m": "Llama Prompt Guard 2 86M (safety classifier)",
 }
 MAX_BODY_SIZE = 20_000
 MAX_MESSAGE_LENGTH = 4_000
@@ -79,7 +82,7 @@ def get_status(start_response):
         }
         models = [
             {"id": model_id, "name": name}
-            for model_id, name in FREE_MODELS.items()
+            for model_id, name in FREE_CHAT_MODELS.items()
             if model_id in available_ids
         ]
         model = next(
@@ -157,7 +160,7 @@ def post_message(environ, start_response):
         return json_response(start_response, 400, {"error": "Message is too long."})
 
     model = body.get("model", os.environ.get("GROQ_MODEL", DEFAULT_MODEL))
-    if not isinstance(model, str) or model not in FREE_MODELS:
+    if not isinstance(model, str) or model not in FREE_CHAT_MODELS:
         return json_response(start_response, 400, {
             "error": "Choose a supported free model.",
         })

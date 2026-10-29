@@ -17,10 +17,13 @@ HEC service and does not determine application status.
 4. Open the deployed site. The connection indicator checks the Groq key and
    configured model; ask a question to test the chat.
 
-The model picker offers currently available free-tier chat models from Groq,
-including GPT OSS 20B, GPT OSS 120B, and Qwen 3.8 27B. The list is checked
-against Groq's live model catalog when the page loads. Free availability and
-limits can change; check Groq's current
+The model picker offers the six text chat models currently listed in Groq's
+free-plan rate limits: GPT OSS 20B, GPT OSS 120B, Qwen 3.8 27B, GPT OSS
+Safeguard 20B, and Llama Prompt Guard 2 (22M and 86M). The safety models are
+specialized classifiers, not general-purpose assistants. The list is checked
+against Groq's live model catalog when the page loads. Audio transcription and
+speech-generation models use different API endpoints and are not chat options.
+Free availability and limits can change; check Groq's current
 [model catalog](https://console.groq.com/docs/models) and
 [rate limits](https://console.groq.com/docs/rate-limits). The function reads
 the API key only from the server environment and does not return it to visitors.
