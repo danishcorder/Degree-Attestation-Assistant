@@ -69,8 +69,30 @@ def json_response(start_response, status, data, extra_headers=None):
     return [body]
 
 
-def get_status(start_response):
+def model_options(available_ids=None):
+    return [
+        {"id": model_id, "name": name}
+        for model_id, name in FREE_CHAT_MODELS.items()
+        if available_ids is None or model_id in available_ids
+    ]
+
+
+def model_status_response(start_response, status, ok, message, models=None):
+    models = models if models is not None else model_options()
     configured_model = os.environ.get("GROQ_MODEL", DEFAULT_MODEL)
+    model_ids = {item["id"] for item in models}
+    model = configured_model if configured_model in model_ids else (
+        models[0]["id"] if models else DEFAULT_MODEL
+    )
+    return json_response(start_response, status, {
+        "ok": ok,
+        "model": model,
+        "models": models,
+        "message": message,
+    })
+
+
+def get_status(start_response):
     try:
         result = api_request("/models")
         if not isinstance(result, dict) or not isinstance(result.get("data"), list):
@@ -80,46 +102,47 @@ def get_status(start_response):
             for item in result["data"]
             if isinstance(item, dict) and isinstance(item.get("id"), str)
         }
-        models = [
-            {"id": model_id, "name": name}
-            for model_id, name in FREE_CHAT_MODELS.items()
-            if model_id in available_ids
-        ]
-        model = next(
-            (item["id"] for item in models if item["id"] == configured_model),
-            models[0]["id"] if models else None,
-        )
+        models = model_options(available_ids)
         available = bool(models)
-        return json_response(start_response, 200 if available else 503, {
-            "ok": available,
-            "model": model,
-            "models": models,
-            "message": (
+        return model_status_response(
+            start_response,
+            200 if available else 503,
+            available,
+            (
                 "Groq connection is ready."
                 if available
                 else "The Groq key works, but no supported free chat models are available."
             ),
-        })
+            models,
+        )
     except RuntimeError:
-        return json_response(start_response, 503, {
-            "ok": False,
-            "message": "XAI_API_KEY is not configured in the server environment.",
-        })
+        return model_status_response(
+            start_response,
+            503,
+            False,
+            "XAI_API_KEY is not configured in the server environment.",
+        )
     except HTTPError as error:
-        return json_response(start_response, 502, {
-            "ok": False,
-            "message": f"Groq rejected the model check (HTTP {error.code}). Verify the key and account.",
-        })
+        return model_status_response(
+            start_response,
+            502,
+            False,
+            f"Groq rejected the model check (HTTP {error.code}). Verify the key and account.",
+        )
     except (URLError, TimeoutError):
-        return json_response(start_response, 502, {
-            "ok": False,
-            "message": "Could not reach Groq. Please try again.",
-        })
+        return model_status_response(
+            start_response,
+            502,
+            False,
+            "Could not reach Groq. Please try again.",
+        )
     except (ValueError, KeyError, TypeError):
-        return json_response(start_response, 502, {
-            "ok": False,
-            "message": "Groq returned an unexpected response.",
-        })
+        return model_status_response(
+            start_response,
+            502,
+            False,
+            "Groq returned an unexpected response.",
+        )
 
 
 def post_message(environ, start_response):
