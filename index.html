@@ -223,6 +223,19 @@
 
     .composer-wrap { padding: 0 18px 17px; }
 
+    .model-picker { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+    .model-picker label { color: var(--muted); font-size: 11px; font-weight: 600; }
+    .model-picker select {
+      max-width: 100%;
+      padding: 6px 9px;
+      border: 1px solid #dfe6df;
+      border-radius: 8px;
+      color: #435248;
+      background: #fff;
+      font: inherit;
+      font-size: 11px;
+    }
+
     .composer {
       padding: 12px 13px 10px;
       border: 1px solid #dfe6df;
@@ -414,6 +427,12 @@
           <p class="status-message" id="status" role="status" aria-live="polite">Ask a question to get started.</p>
           <form id="form">
             <div class="composer">
+              <div class="model-picker">
+                <label for="model">Free model</label>
+                <select id="model" name="model" disabled>
+                  <option>Checking available models...</option>
+                </select>
+              </div>
               <label for="message" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Your question</label>
               <textarea id="message" name="message" placeholder="Ask about HEC degree attestation..." maxlength="4000" required></textarea>
               <div class="composer-actions">
@@ -463,6 +482,7 @@
     const chat = document.getElementById("chat");
     const status = document.getElementById("status");
     const sendButton = document.getElementById("send");
+    const modelSelect = document.getElementById("model");
     const connection = document.getElementById("connection");
     const connectionLabel = document.getElementById("connection-label");
 
@@ -514,6 +534,14 @@
         if (!response.ok || !data.ok) {
           throw new Error(data.message || "Could not connect to Groq.");
         }
+        modelSelect.replaceChildren(...data.models.map((model) => {
+          const option = document.createElement("option");
+          option.value = model.id;
+          option.textContent = model.name;
+          return option;
+        }));
+        modelSelect.value = data.model;
+        modelSelect.disabled = false;
         connection.dataset.state = "ready";
         connectionLabel.textContent = "Assistant online";
       } catch (error) {
@@ -538,7 +566,7 @@
         const response = await fetch("/api", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message })
+          body: JSON.stringify({ message, model: modelSelect.value })
         });
         const data = await readJson(response);
         if (!response.ok) throw new Error(data.error || "The request failed. Please try again.");

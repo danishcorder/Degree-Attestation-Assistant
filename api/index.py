@@ -13,6 +13,11 @@ except ImportError:
 
 GROQ_URL = "https://api.groq.com/openai/v1"
 DEFAULT_MODEL = "openai/gpt-oss-20b"
+FREE_MODELS = {
+    "openai/gpt-oss-20b": "GPT OSS 20B",
+    "openai/gpt-oss-120b": "GPT OSS 120B",
+    "qwen/qwen3.8-27b": "Qwen 3.8 27B",
+}
 MAX_BODY_SIZE = 20_000
 MAX_MESSAGE_LENGTH = 4_000
 HTTP_STATUSES = {
@@ -62,20 +67,34 @@ def json_response(start_response, status, data, extra_headers=None):
 
 
 def get_status(start_response):
-    model = os.environ.get("GROQ_MODEL", DEFAULT_MODEL)
+    configured_model = os.environ.get("GROQ_MODEL", DEFAULT_MODEL)
     try:
         result = api_request("/models")
         if not isinstance(result, dict) or not isinstance(result.get("data"), list):
             raise ValueError("Invalid models response.")
-        models = [item.get("id") for item in result["data"] if isinstance(item, dict)]
-        available = model in models
+        available_ids = {
+            item.get("id")
+            for item in result["data"]
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+        models = [
+            {"id": model_id, "name": name}
+            for model_id, name in FREE_MODELS.items()
+            if model_id in available_ids
+        ]
+        model = next(
+            (item["id"] for item in models if item["id"] == configured_model),
+            models[0]["id"] if models else None,
+        )
+        available = bool(models)
         return json_response(start_response, 200 if available else 503, {
             "ok": available,
             "model": model,
+            "models": models,
             "message": (
                 "Groq connection is ready."
                 if available
-                else "The Groq key works, but the configured model is unavailable."
+                else "The Groq key works, but no supported free chat models are available."
             ),
         })
     except RuntimeError:
@@ -137,7 +156,12 @@ def post_message(environ, start_response):
     if len(message) > MAX_MESSAGE_LENGTH:
         return json_response(start_response, 400, {"error": "Message is too long."})
 
-    model = os.environ.get("GROQ_MODEL", DEFAULT_MODEL)
+    model = body.get("model", os.environ.get("GROQ_MODEL", DEFAULT_MODEL))
+    if not isinstance(model, str) or model not in FREE_MODELS:
+        return json_response(start_response, 400, {
+            "error": "Choose a supported free model.",
+        })
+
     try:
         result = api_request("/chat/completions", {
             "model": model,

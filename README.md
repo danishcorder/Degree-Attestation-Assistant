@@ -11,14 +11,16 @@ HEC service and does not determine application status.
 2. In **Project Settings → Environment Variables**, add:
    - `XAI_API_KEY` — your **Groq** API key (use this exact variable name;
      keep it server-side and never add it to frontend code or commit it).
-   - `GROQ_MODEL` — optional; defaults to `openai/gpt-oss-20b`.
+   - `GROQ_MODEL` — optional default selection; defaults to `openai/gpt-oss-20b`.
 3. Apply the variables to the environments you plan to use and deploy (or
    redeploy) the project.
 4. Open the deployed site. The connection indicator checks the Groq key and
    configured model; ask a question to test the chat.
 
-The default model is currently listed by Groq with free-tier rate limits. Free
-availability and limits can change; check Groq's current
+The model picker offers currently available free-tier chat models from Groq,
+including GPT OSS 20B, GPT OSS 120B, and Qwen 3.8 27B. The list is checked
+against Groq's live model catalog when the page loads. Free availability and
+limits can change; check Groq's current
 [model catalog](https://console.groq.com/docs/models) and
 [rate limits](https://console.groq.com/docs/rate-limits). The function reads
 the API key only from the server environment and does not return it to visitors.
